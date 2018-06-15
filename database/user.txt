@@ -1,0 +1,8 @@
+{
+    'HGN':{
+        'Password':'371996',
+        'SystemList':{}},
+    'admin':{
+        'Password':'admin',
+        'SystemList':{}}
+}
