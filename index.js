@@ -48,7 +48,7 @@ class serverUser {
                 if (err) throw err;
                 else {
                     var temp = []
-                    console.log(result.length)
+                    //console.log(result.length)
                     for (let i = 0; i < result.length; i++) {
                         temp[i] = {}
                         temp[i]["ID"] = result[i].id
@@ -56,7 +56,7 @@ class serverUser {
                         temp[i]["STATUS"] = result[i].stt
                     }
                     respond["DATA"] = temp
-                    console.log(respond)
+                    //console.log(respond)
                     socket.write(JSON.stringify(respond) + "\x04")
                 }
             })
@@ -72,7 +72,36 @@ class serverUser {
             })
         }
         else if(cmd['FUNC'] == 'READ') {
-
+            //console.log(JSON.stringify(cmd))
+            let queryString = "SELECT * FROM dev WHERE sys=\"" + cmd['DATA'] + "\""
+            db.query(queryString, (err, result) => {
+                if (err) throw err
+                else {
+                    let respond = {}
+                    respond["USER"] = cmd["USER"]
+                    respond["PASS"] = cmd["PASS"]
+                    respond["FUNC"] = "READ"
+                    let temp = {}
+                    temp["FILE"] = "DEVLIST"
+                    temp["RASPID"] = cmd['DATA']
+                    for(let i = 0; i < result.length; i++) {
+                        let t_addr = result[i].addr
+                        temp[t_addr] = {}
+                        temp[t_addr]["ID"] = t_addr
+                        temp[t_addr]["HARDWARE"] = result[i].hardware
+                        temp[t_addr]["VALUE"] = result[i].lastValue
+                        console.log(result[i].lastValue)
+                    }
+                    respond["DATA"] = temp
+                    console.log(JSON.stringify(respond))
+                    socket.write(JSON.stringify(respond) + "\x04")
+                }
+            })
+        }
+        else if(cmd['FUNC'] == 'WRITE') {
+            //console.log(JSON.stringify(cmd))
+            let topic_name = cmd["DATA"]["ADDR"] + "/m2s"
+            client.publish(topic_name, JSON.stringify(cmd["DATA"]))
         }
     }
 }
@@ -91,7 +120,7 @@ class serverRasp {
 
     msgHandler(socket, msg) {
         let cmd = JSON.parse(msg.replace(/'/g,'"'))
-        console.log(JSON.stringify(cmd))
+        //console.log(JSON.stringify(cmd))
         if( !this.sysOnline.includes(cmd["RASPID"]) ){
             this.sysOnline.push(cmd["RASPID"])
             client.subscribe(cmd["RASPID"] + "/s2m")
@@ -104,14 +133,14 @@ class serverRasp {
         if(cmd.hasOwnProperty("FILE")) {
             if(cmd["FILE"] == "DEVLIST") {
                 let key
+                // Delete old data
+                let queryString = "DELETE FROM dev WHERE sys=\"" + cmd["RASPID"] + "\""
+                db.query(queryString, (err, result) => {
+                    // Nothing to do here
+                })
                 for (key in cmd) {
                     if (key == "FILE") continue;
                     if (key == "RASPID") continue;
-                    // Delete old data
-                    let queryString = "DELETE FROM dev WHERE sys=\"" + cmd["RASPID"] + "\""
-                    db.query(queryString, (err, result) => {
-                        // Nothing to do here
-                    })
                     queryString = "INSERT INTO dev (sys, addr, name, hardware, lastValue) VALUES (\""
                     + cmd["RASPID"] + "\","
                     + key.toString() + ","
@@ -127,8 +156,6 @@ class serverRasp {
     }
 
     mqttHandler(raspid, cmd) {
-        console.log(raspid)
-        console.log(cmd)
         if( this.sysOnline.includes(raspid) ) {
             if(cmd["FUNC"] == "UPDATE") {
                 //console.log(JSON.stringify(cmd))
@@ -141,6 +168,16 @@ class serverRasp {
                         if(err) throw err
                     })
                 }
+            }
+            else if(cmd["FUNC"] == "WRITE") {
+                console.log(JSON.stringify(cmd))
+                let addr = cmd['DEV1']
+                let value = cmd['DATA']['1']
+                let queryString =   "UPDATE dev SET lastValue=" + value + " WHERE sys=\"" + 
+                                    raspid + "\" AND addr=" + addr
+                db.query(queryString, (err, result) => {
+                    if(err) throw err
+                })                    
             }
         }
     }
