@@ -4,9 +4,6 @@ var fs = require('fs');
 var mysql = require('mysql');
 var mqtt = require('mqtt');
 
-var writeSys = []
-var writeSock = []
-
 class serverUser {
     constructor(port) {
         var client = []
@@ -106,8 +103,6 @@ class serverUser {
             console.log(JSON.stringify(cmd))
             let topic_name = cmd["DATA"]["ADDR"] + "/m2s"
             client.publish(topic_name, JSON.stringify(cmd["DATA"]))
-            writeSys.push(cmd['DATA']['ADDR'])
-            writeSock.push(socket)
         }
         else if(cmd['FUNC'] == 'RULE') {
             let queryString = "SELECT * FROM rule WHERE sys=\"" + cmd['DATA'] + "\""
@@ -243,34 +238,6 @@ class serverRasp {
                 db.query(queryString, (err, result) => {
                     if(err) throw err
                 })
-                let index = writeSys.indexOf(raspid)
-                let sock = writeSock[index]
-                queryString = "SELECT * FROM dev WHERE sys=\"" + raspid + "\""
-                db.query(queryString, (err, result) => {
-                    if (err) throw err
-                    else {
-                        let respond = {}
-                        respond["USER"] = 'None'
-                        respond["PASS"] = 'None'
-                        respond["FUNC"] = "READ"
-                        let temp = {}
-                        temp["FILE"] = "DEVLIST"
-                        temp["RASPID"] = raspid
-                        for(let i = 0; i < result.length; i++) {
-                            let t_addr = result[i].addr
-                            temp[t_addr] = {}
-                            temp[t_addr]["ID"] = t_addr
-                            temp[t_addr]["HARDWARE"] = result[i].hardware
-                            temp[t_addr]["VALUE"] = result[i].lastValue
-                            //console.log(result[i].lastValue)
-                        }
-                        respond["DATA"] = temp
-                        ////console.log(JSON.stringify(respond))
-                        sock.write(JSON.stringify(respond) + "\x04")
-                    }
-                })
-                writeSys.pop(raspid)
-                writeSock.pop(sock)
             }
         }
     }
