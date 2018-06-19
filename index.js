@@ -21,7 +21,13 @@ class serverUser {
     }
 
     msgHandler(socket, msg) {
-        let cmd = JSON.parse(msg.replace(/'/g,'"'))
+        let cmd = {}
+        try {
+            cmd = JSON.parse(msg.replace(/'/g,'"'))
+        }
+        catch(error) {
+            return
+        }
 	    ////console.log(JSON.stringify(cmd))
         if(cmd['FUNC'] == 'SIGNIN') {
             let queryString = "SELECT * FROM acc WHERE username = '" + cmd["USER"] + "'";
@@ -76,7 +82,7 @@ class serverUser {
             })
         }
         else if(cmd['FUNC'] == 'READ') {
-            ////console.log(JSON.stringify(cmd))
+            console.log(JSON.stringify(cmd))
             let queryString = "SELECT * FROM dev WHERE sys=\"" + cmd['DATA'] + "\""
             db.query(queryString, (err, result) => {
                 if (err) throw err
@@ -153,7 +159,13 @@ class serverRasp {
     }
 
     msgHandler(socket, msg) {
-        let cmd = JSON.parse(msg.replace(/'/g,'"'))
+        let cmd = {}
+        try {
+            cmd = JSON.parse(msg.replace(/'/g,'"'))
+        }
+        catch(err) {
+            return
+        }
         var name_t = ""
         ////console.log(JSON.stringify(cmd))
         if( !this.sysOnline.includes(cmd["RASPID"]) ){
@@ -242,7 +254,7 @@ class serverRasp {
                                     raspid + "\" AND addr=" + addr
                 db.query(queryString, (err, result) => {
                     if(err) throw err
-                })
+                })/*
                 let index = writeSys.indexOf(raspid)
                 let sock = writeSock[index]
                 queryString = "SELECT * FROM dev WHERE sys=\"" + raspid + "\""
@@ -270,7 +282,7 @@ class serverRasp {
                     }
                 })
                 writeSys.pop(raspid)
-                writeSock.pop(sock)
+                writeSock.pop(sock)*/
             }
         }
     }
